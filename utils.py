@@ -42,7 +42,7 @@ def save_frames_from_video(video_path):
     and create all the frames of the video, saving them on
     the specific folder of the video inside the frames folder
     :param video_path: path of the input video
-    :return: the first frame and the FPS
+    :return: the first frame and the FPS, and the video name
     '''
     # check if exists frames dir, otherwise create it
     if not os.path.isdir('frames'):
@@ -89,7 +89,7 @@ def save_frames_from_video(video_path):
         # Break the loop
         else:
             print("Done! " + str(cnt) + " frames saved in" + save_path_folder)
-            return first_frame, FPS
+            return first_frame, FPS, video_name
 
 
 def compute_perspective_transform(corner_points,width,height,image):
