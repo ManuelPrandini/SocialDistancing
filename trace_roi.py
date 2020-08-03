@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # check if exist the frames of the video yet
     if not os.path.exists(frames_dir):
         # RIPRENDO IL VIDEO E LO DIVIDO IN FRAME
-        first_frame, FPS, video_name = save_frames_from_video(video_file)
+        video_name, FPS = save_frames_from_video(video_file)
     else:
         video_name, FPS, width, height, _, _ = read_results(text_file)
 

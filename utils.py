@@ -98,7 +98,7 @@ def save_frames_from_video(video_path):
         # Break the loop
         else:
             print("Done! " + str(cnt) + " frames saved in" + save_path_folder)
-            return first_frame, FPS, video_name
+            return video_name, FPS
 
 
 def get_frames(frames_dir):
