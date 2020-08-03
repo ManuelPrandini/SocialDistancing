@@ -47,7 +47,7 @@ def save_frames_from_video(video_path):
     and create all the frames of the video, saving them on
     the specific folder of the video inside the frames folder
     :param video_path: path of the input video
-    :return: the first frame and the FPS, and the video name
+    :return: the video name and FPS
     '''
     if not os.path.isfile(video_path):
         IOError("File video doesn't exists!")
@@ -102,12 +102,23 @@ def save_frames_from_video(video_path):
 
 
 def get_frames(frames_dir):
+    '''
+    Method that returns from frames_folder passed in input
+    the sorted list of frame_names
+    :param frames_dir: the path of the frames_dir
+    :return: the sorted list of frame_names
+    '''
     frames = os.listdir(frames_dir)
     frames.sort(key=lambda f: int(re.sub('\D', '', f)))
     return frames
 
 
 def get_video_name(video_path):
+    '''
+    Method that returns the video name from path
+    :param video_path: path of the video
+    :return: the video name
+    '''
     return video_path.split("/")[-1].split(".")[0]
 
 
@@ -148,14 +159,14 @@ def compute_perspective_unit_distances(unit_points, matrix_transformation):
     return distance_w, distance_h
 
 
-def compute_point_perspective_transformation(matrix, list_downoids):
+def compute_point_perspective_transformation(matrix, list_midpoints):
     ''' Apply the perspective transformation to every ground point which have been detected on the main frame.
 	:param  matrix : the 3x3 matrix
 	:param  list_downoids : list that contains the points to transform
 	return : list containing all the new points
 	'''
     # Compute the new coordinates of our points
-    list_points_to_detect = np.float32(list_downoids).reshape(-1, 1, 2)
+    list_points_to_detect = np.float32(list_midpoints).reshape(-1, 1, 2)
     transformed_points = cv2.perspectiveTransform(list_points_to_detect, matrix)
     # Loop over the points and add them to the list that will be returned
     transformed_points_list = list()
@@ -165,15 +176,88 @@ def compute_point_perspective_transformation(matrix, list_downoids):
 
 
 def mid_point(person):
+    '''
+    Method used to return the bottom midpoint of a bbox of a singular person
+    :param person: the bbox of the person
+    :return: the bottom midpoint (x,y)
+    '''
     # get the coordinates
     x1, y1, x2, y2 = person
-
     # compute bottom center of bbox
     x_mid = int((x1 + x2) / 2)
     y_mid = int(y2)
     mid = (x_mid, y_mid)
-
     return mid
+
+
+def calculate_euclidean_distance(p1, p2, distance_w=None, distance_h=None):
+    if distance_h is not None and distance_w is not None:
+        h = abs(p2[1] - p1[1])
+        w = abs(p2[0] - p1[0])
+
+        dis_w = float((w / distance_w) * 180)
+        dis_h = float((h / distance_h) * 180)
+
+        return int(np.sqrt(((dis_h) ** 2) + ((dis_w) ** 2)))
+    else:
+        return int(np.sqrt(((p2[1] - p1[1]) ** 2) + ((p2[0] - p1[0]) ** 2)))
+
+
+def compute_distances(midpoints, distance_w=None, distance_h=None):
+    num_people = len(midpoints)
+    distances = []
+    distancesLine = []
+    for i in range(num_people):
+        for j in range(i + 1, num_people):
+            if i < j:
+                dist = calculate_euclidean_distance(midpoints[i], midpoints[j],
+                                                    distance_w, distance_h)
+
+                # add to list
+                distances.append((i, dist))
+                distances.append((j, dist))
+                distancesLine.append((i, j, dist))
+
+    sorted_distances = sorted(distances, key=lambda tup: tup[1])
+    sorted_dist_line = sorted(distancesLine, key=lambda tup: tup[2])
+
+    return sorted_distances, sorted_dist_line
+
+
+def return_people_ids(bboxes):
+    people_ids = [x for x in range(len(bboxes))]
+    return people_ids
+
+
+def check_risks_people(distances, people_ids):
+    set_safe = set()
+    set_warning = set()
+    set_dangerous = set()
+
+    list_people = people_ids
+
+    # if is detected only one person, put directly in safe set
+    if len(list_people) == 1:
+        set_safe.add(0)
+        return set_safe, set_warning, set_dangerous
+
+    # otherwise assign each person based on distance in the right set
+    for d in distances:
+        p, dist = d
+        if len(list_people) == 0:
+            break
+
+        if p in list_people:
+            if dist <= 150:
+                set_dangerous.add(p)
+            elif dist > 150 and dist <= 180:
+                set_warning.add(p)
+            else:
+                set_safe.add(p)
+
+            list_people.remove(p)
+
+    return set_safe, set_warning, set_dangerous
 
 
 def write_results(file_txt, video_name, FPS, width, height, mouse_points):

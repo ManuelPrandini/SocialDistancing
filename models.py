@@ -19,6 +19,9 @@ from detectron2.config import get_cfg
 from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog
 
+# import libraries for Yolo
+from imageai.Detection import ObjectDetection
+
 
 def faster_RCNN_model():
     cfg = get_cfg()
@@ -34,6 +37,15 @@ def faster_RCNN_model():
     return predictor
 
 
+def YoloV3_model(yolov3_model_path):
+    detector = ObjectDetection()
+    detector.setModelTypeAsYOLOv3()  # Se vuoi usare yolo tiny cambia il set model
+    detector.setModelPath(yolov3_model_path)
+    custom_objects = detector.CustomObjects(person=True)
+    detector.loadModel()
+    return detector, custom_objects
+
+
 def find_people_fasterRCNN(frame, model):
     # img = cv2.imread(frame_file)
     outputs = model(frame)
@@ -45,14 +57,13 @@ def find_people_fasterRCNN(frame, model):
     return people, midpoints
 
 
-def find_people(video_path, name, model):
-    img = cv2.imread(video_path + name)
-    outputs = model(img)
-    classes = outputs['instances'].pred_classes.cpu().numpy()
-    bbox = outputs['instances'].pred_boxes.tensor.cpu().numpy()
-    ind = np.where(classes == 0)[0]
-    person = bbox[ind]
-    midpoints = [mid_point(img, person, i) for i in range(len(person))]
-    num = len(midpoints)
-    return midpoints
-
+def find_people_YoloV3(frame, model, custom_objects=None):
+    returned_image, detections = model.detectCustomObjectsFromImage(
+        custom_objects=custom_objects,
+        input_type="array", input_image=frame,
+        output_type="array",
+        minimum_percentage_probability=30
+    )
+    people = [x['box_points'] for x in detections]
+    midpoints = [mid_point(person) for person in people]
+    return people, midpoints
