@@ -185,10 +185,10 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
                     utils.COLOR_DANGEROUS, 2, cv2.LINE_4)
 
         # compose the image
-        # numpy_vertical = np.vstack((frame, background_social_detector))
+        numpy_vertical = np.vstack((frame, background_social_detector))
         numpy_vertical_concat = np.concatenate((frame, background_social_detector), axis=0)
 
-        # numpy_horizontal = np.hstack((numpy_vertical_concat, bird_eye_view_img))
+        numpy_horizontal = np.hstack((numpy_vertical_concat, bird_eye_view_img))
         numpy_horizontal_concat = np.concatenate((numpy_vertical_concat, bird_eye_view_img), axis=1)
 
         # write result of edit frame
