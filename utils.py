@@ -9,6 +9,8 @@ VIDEO_FOLDER = "./video/"
 FRAMES_FOLDER = "./frames/"
 MAX_MOUSE_POINTS = 7
 MAX_POINTS_ROI = 4
+MAX_DANGEROUS_DISTANCE = 150
+MAX_WARNING_DISTANCE = 180
 COLOR_SAFE = (0,255,0)
 COLOR_WARNING = (0,255,255)
 COLOR_DANGEROUS = (0,0,255)
@@ -251,9 +253,9 @@ def check_risks_people(distances, people_ids):
             break
 
         if p in list_people:
-            if dist <= 150:
+            if dist <= MAX_DANGEROUS_DISTANCE:
                 set_dangerous.add(p)
-            elif dist > 150 and dist <= 180:
+            elif dist > MAX_DANGEROUS_DISTANCE and dist <= MAX_WARNING_DISTANCE:
                 set_warning.add(p)
             else:
                 set_safe.add(p)
