@@ -8,6 +8,9 @@ from tqdm import tqdm
 #from utils import mid_point, get_frames, FRAMES_FOLDER, compute_perspective_transform, \
  #   compute_perspective_unit_distances, return_people_ids, compute_point_perspective_transformation, compute_distances, \
  #   check_risks_people, COLOR_SAFE, COLOR_WARNING, COLOR_DANGEROUS
+
+#DA PROVARE SU COLAB
+#from SocialDistancing import utils
 import utils
 
 setup_logger()
@@ -150,7 +153,7 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
                 elif i in set_dangerous_faster:
                     cv2.rectangle(frame, (x1, y1), (x2, y2), utils.COLOR_DANGEROUS)
 
-                    # Draw circles of right color on bird eye image
+            # Draw circles of right color on bird eye image
             for i in range(len(midpoints_transformed)):
                 x, y = midpoints_transformed[i][0], midpoints_transformed[i][1]
                 if i in set_safe_faster:
@@ -159,6 +162,20 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
                     cv2.circle(bird_eye_view_img, (x, y), 5, utils.COLOR_WARNING, 5)
                 elif i in set_dangerous_faster:
                     cv2.circle(bird_eye_view_img, (x, y), 5, utils.COLOR_DANGEROUS, 5)
+
+            # draw distance lines on frame
+            # draw distance lines on bird eye view
+            for line in dist_line:
+                p1, p2, d = line
+
+                if d <= utils.MAX_DANGEROUS_DISTANCE:
+                    cv2.line(frame, tuple(midpoints[p1]), tuple(midpoints[p2]), utils.COLOR_DANGEROUS)
+                    cv2.line(bird_eye_view_img, tuple(midpoints_transformed[p1]),
+                             tuple(midpoints_transformed[p2]), utils.COLOR_DANGEROUS)
+                elif utils.MAX_DANGEROUS_DISTANCE < d <= utils.MAX_WARNING_DISTANCE:
+                    cv2.line(frame, tuple(midpoints[p1]), tuple(midpoints[p2]), utils.COLOR_WARNING)
+                    cv2.line(bird_eye_view_img, tuple(midpoints_transformed[p1]),
+                             tuple(midpoints_transformed[p2]), utils.COLOR_WARNING)
 
                 # set text to write on background image based on statistics
                 text_number_people = "People detected: " + str(len(midpoints_transformed))
