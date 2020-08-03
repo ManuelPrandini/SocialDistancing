@@ -9,6 +9,9 @@ VIDEO_FOLDER = "./video/"
 FRAMES_FOLDER = "./frames/"
 MAX_MOUSE_POINTS = 7
 MAX_POINTS_ROI = 4
+COLOR_SAFE = (0,255,0)
+COLOR_WARNING = (0,255,255)
+COLOR_DANGEROUS = (0,0,255)
 
 
 def download_from_youtube(video_url, folder_path, video_name=None):
@@ -54,8 +57,8 @@ def save_frames_from_video(video_path):
         return
 
     # check if exists frames dir, otherwise create it
-    if not os.path.isdir('frames'):
-        os.mkdir('frames')
+    if not os.path.isdir(FRAMES_FOLDER):
+        os.mkdir(FRAMES_FOLDER)
 
     # take video name to rename save folder
     video_name = get_video_name(video_path)
@@ -314,3 +317,24 @@ def read_results(file_txt):
 
         fr.close()
     return video_name, FPS, width, height, points_ROI, points_distance
+
+
+def create_video(frames_dir, video_name, FPS):
+    frames = os.listdir(frames_dir)
+    frames.sort(key=lambda f: int(re.sub('\D', '', f)))
+    frame_array = []
+
+    for i in range(len(frames)):
+        # reading each files
+        img = cv2.imread(frames_dir + frames[i])
+        height, width, _ = img.shape
+        size = (width, height)
+        # inserting the frames into an image array
+        frame_array.append(img)
+
+    out = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'DIVX'), FPS, size)
+
+    for i in range(len(frame_array)):
+        # writing to a image array
+        out.write(frame_array[i])
+    out.release()
