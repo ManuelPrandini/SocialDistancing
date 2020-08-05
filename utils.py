@@ -3,6 +3,7 @@ import cv2
 import os
 import re
 import pytube
+import matplotlib.pyplot as plt
 
 # DEFINE SOME CONSTANTS
 VIDEO_FOLDER = "./video/"
@@ -340,3 +341,47 @@ def create_video(frames_dir, video_name, FPS):
         # writing to a image array
         out.write(frame_array[i])
     out.release()
+
+
+def create_plot_contagion(contagion_map, title, modality="d"):
+    plt.style.use('seaborn-whitegrid')
+    fig = plt.figure(figsize=[27, 9])
+    ax = plt.axes()
+    # set info axes
+    plt.title(title, fontsize=20)
+    plt.xlabel("frames", fontsize=18)
+    plt.ylabel("n° people", fontsize=18);
+
+    people_detected = []
+    safe_people = []
+    warning_people = []
+    dangerous_people = []
+
+    # x are frames
+    frames = np.arange(0, len(contagion_map))
+
+    # get data from contagion_map
+    for f in frames:
+        p, s, w, d = contagion_map[f]
+        # set in right lists
+        people_detected.append(p)
+        safe_people.append(s)
+        warning_people.append(w)
+        dangerous_people.append(d)
+
+    # set limits to plot
+    plt.xlim(0, len(contagion_map))
+    plt.ylim(min(people_detected), max(people_detected) + 2);
+
+    # plot based on modality chosen
+    plt.plot(frames, people_detected, color='black', linestyle='-', label="detected")
+    if 'd' in modality:
+        plt.plot(frames, dangerous_people, color="red", linestyle='-', label="dangerous")
+    if 'w' in modality:
+        plt.plot(frames, warning_people, color="yellow", linestyle='-', label="warning")
+    if 's' in modality:
+        plt.plot(frames, safe_people, color="green", linestyle='-', label="safe")
+
+    # set legend and save figure plot
+    plt.legend(fontsize=18)
+    fig.savefig(title + '.jpg')

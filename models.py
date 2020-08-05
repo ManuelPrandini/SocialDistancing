@@ -10,8 +10,8 @@ from tqdm import tqdm
  #   check_risks_people, COLOR_SAFE, COLOR_WARNING, COLOR_DANGEROUS
 
 #DA PROVARE SU COLAB
-#from SocialDistancing import utils
-import utils
+from SocialDistancing import utils
+#import utils
 
 setup_logger()
 
@@ -81,6 +81,7 @@ def find_people_YoloV3(frame, model, custom_objects=None):
 
 def perform_social_detection(video_name, points_ROI, points_distance, width, height, selected_model):
     output_folder = "out/"
+    contagion_map = []
     # create output folder of processed frames
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
@@ -177,19 +178,27 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
                     cv2.line(bird_eye_view_img, tuple(midpoints_transformed[p1]),
                              tuple(midpoints_transformed[p2]), utils.COLOR_WARNING)
 
-                # set text to write on background image based on statistics
-                text_number_people = "People detected: " + str(len(midpoints_transformed))
-                text_safe = "Safe person: " + str((len(set_safe_faster) / len(midpoints_transformed)) * 100) + "%"
-                text_warning = "Warning person: " + str(
-                    (len(set_warning_faster) / len(midpoints_transformed)) * 100) + "%"
-                text_dangerous = "Dangerous person: " + str(
-                    (len(set_dangerous_faster) / len(midpoints_transformed)) * 100) + "%"
+            # set text to write on background image based on statistics
+            text_number_people = "People detected: " + str(len(midpoints_transformed))
+            text_safe = "Safe person: " + str((len(set_safe_faster) / len(midpoints_transformed)) * 100) + "%"
+            text_warning = "Warning person: " + str(
+                (len(set_warning_faster) / len(midpoints_transformed)) * 100) + "%"
+            text_dangerous = "Dangerous person: " + str(
+                (len(set_dangerous_faster) / len(midpoints_transformed)) * 100) + "%"
+
+            # fill contagion_map --> (n_people, n_safe, n_warning, n_dangerous)
+            contagion_tuple = (len(midpoints), len(set_safe_faster), len(set_warning_faster), len(set_dangerous_faster))
+            contagion_map.append(contagion_tuple)
         else:
             # no people detected, write only 0 on the background image
             text_number_people = "People detected: 0"
             text_safe = "Safe person: 0.0%"
             text_warning = "Warning person: 0.0%"
             text_dangerous = "Dangerous person: 0.0%"
+
+            # fill contagion_map with zeros
+            contagion_tuple = (0, 0, 0, 0)
+            contagion_map.append(contagion_tuple)
 
         # set text on image
         cv2.putText(background_social_detector, text_number_people, (12, 170), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0),
@@ -210,3 +219,6 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
 
         # write result of edit frame
         cv2.imwrite(output_folder + video_name + "/" + f, numpy_horizontal_concat)
+
+    # return contagion map
+    return contagion_map
