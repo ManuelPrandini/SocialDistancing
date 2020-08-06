@@ -129,8 +129,8 @@ def get_video_name(video_path):
 
 
 def compute_perspective_transform(corner_points, width, height, image):
-    ''' Compute the transformation matrix
-	:param corner_points : 4 corner points selected from the image
+    ''' Compute the transformation matrix useful for the bird eye view image
+	:param corner_points : 4 corner points selected from the image, that indicates the ROI
 	:param  height, width : size of the image
 	return : transformation matrix and the transformed image
 	'''
@@ -147,10 +147,12 @@ def compute_perspective_transform(corner_points, width, height, image):
 
 def compute_perspective_unit_distances(unit_points, matrix_transformation):
     '''
+    Compute the perspective trasformation of the points used to take the right distances.
     Points must be: central, width, height order
-    :param unit_points:
-    :param matrix_transformation:
-    :return:
+    :param unit_points: list of 3 points
+    :param matrix_transformation: matrix trasformation used to transform the points
+    :return: the distances in horizontal and vertical used to calculates distance between two humans
+    through the midpoints
     '''
     # using next 3 points for horizontal and vertical unit length(in this case 180 cm)
     points_distance = np.float32(np.array([unit_points]))
@@ -168,7 +170,7 @@ def compute_perspective_unit_distances(unit_points, matrix_transformation):
 def compute_point_perspective_transformation(matrix, list_midpoints):
     ''' Apply the perspective transformation to every ground point which have been detected on the main frame.
 	:param  matrix : the 3x3 matrix
-	:param  list_downoids : list that contains the points to transform
+	:param  list_midpoints : list that contains the points to transform
 	return : list containing all the new points
 	'''
     # Compute the new coordinates of our points
@@ -197,6 +199,20 @@ def mid_point(person):
 
 
 def calculate_euclidean_distance(p1, p2, distance_w=None, distance_h=None):
+    '''
+    Method used to calculate euclidean distance between two people represented by bottom midpoints.
+    THe method can calculate both the normal euclidean distance if are not turned in input
+    the horizontal distance and the vertical distance calculated using the perspective transformation,
+    and also the euclidean distance of the midpoints after the transformation through the matrix perspective
+    transformation.
+    :param p1: first people represented by a midpoint (x1,y1)
+    :param p2: second people represented by a midpoint (x1,y1)
+    :param distance_w: if is None, calculate euclidean distance over midpoints taken from the frame, otherwise
+    calculate distance after perspective transformation of the midpoints on bird eye view
+    :param distance_h: if is None, calculate euclidean distance over midpoints taken from the frame, otherwise
+    calculate distance after perspective transformation of the midpoints on bird eye view
+    :return: the euclidean distance between p1 and p2
+    '''
     if distance_h is not None and distance_w is not None:
         h = abs(p2[1] - p1[1])
         w = abs(p2[0] - p1[0])
@@ -210,6 +226,19 @@ def calculate_euclidean_distance(p1, p2, distance_w=None, distance_h=None):
 
 
 def compute_distances(midpoints, distance_w=None, distance_h=None):
+    '''
+    Method that takes in input a list of all people of a frame (represented by midpoints)
+    and calculate for each pair of midpoints, the euclidean distance between us. The method
+    creates a list of distance between people where each people is indicated by tuple (index_of_midpoint, distance).
+    The method sort the tuples by distances. Is also calculated a list of distance line composed by tuple of
+    (index_first_person,index_second_person,distance) and then is sorted also this list.
+    :param midpoints: list of midpoints (x1,y1)
+    :param distance_w: if is None, calculate euclidean distance over midpoints taken from the frame, otherwise
+    calculate distance after perspective transformation of the midpoints on bird eye view
+    :param distance_h: if is None, calculate euclidean distance over midpoints taken from the frame, otherwise
+    calculate distance after perspective transformation of the midpoints on bird eye view
+    :return: a sorted list of distances and a sorted list of distances line.
+    '''
     num_people = len(midpoints)
     distances = []
     distancesLine = []
@@ -231,11 +260,30 @@ def compute_distances(midpoints, distance_w=None, distance_h=None):
 
 
 def return_people_ids(bboxes):
+    '''
+    Method that takes the bboxes of the people detected
+    to check how many people are present in a frame
+    and create a list of indices of people.
+    :param bboxes: a list of tuple (x1,y1,x2,y2)
+    :return: a list of people indices
+    '''
     people_ids = [x for x in range(len(bboxes))]
     return people_ids
 
 
 def check_risks_people(distances, people_ids):
+    '''
+    Method used to separate people detected in the right sets based on the order of the distances in the list
+    turned in input.
+    There are three sets: safe,warning,dangerous.
+    Each person can be only in one set. If the person has a distance less then the MAX_DANGEROUS_DISTANCE, is placed
+    inside the dangerous set, else if the distance is between the MAX_DANGEROUS_DISTANCE and the MAX_WARNING_DISTANCE, is
+    paced inside the warning set, otherwise in safe set.
+
+    :param distances: a sorted list composed by (index_of_person,distance_between_other_person)
+    :param people_ids: a list of the indices of the person
+    :return: 3 sets composed by the indices of the people
+    '''
     set_safe = set()
     set_warning = set()
     set_dangerous = set()
@@ -267,6 +315,16 @@ def check_risks_people(distances, people_ids):
 
 
 def write_results(file_txt, video_name, FPS, width, height, mouse_points):
+    '''
+    Method used to save all the information after the trace_ROI operation on the frame.
+    :param file_txt: file where write the results
+    :param video_name: the name of the video
+    :param FPS: the number of Frame per seconds
+    :param width: the width of the frame
+    :param height: the heigth of the frame
+    :param mouse_points: a list of points where the first four points indicate the ROI traced on the frame
+    and the last three points indicates the unit distances.
+    '''
     # create file .txt and write results
     f = open(file_txt, "w+")
 
@@ -287,6 +345,12 @@ def write_results(file_txt, video_name, FPS, width, height, mouse_points):
 
 
 def read_results(file_txt):
+    '''
+    Method used to read the info of specific video, like the name, the FPS, width,height,
+    points of ROI, points of unit distance.
+    :param file_txt: file where read the informations
+    :return: name of the video, the FPS, width, height, points_of ROI, points of unit distances.
+    '''
     b_take_ROI = False
     b_take_distance = False
     points_ROI = []
@@ -323,6 +387,13 @@ def read_results(file_txt):
 
 
 def create_video(frames_dir, video_name, FPS):
+    '''
+    Method that read all the edit frames inside the directory, sort them
+    and then create a video.
+    :param frames_dir: path of the folder where get the frames
+    :param video_name: the name of the video to create
+    :param FPS: the number of FPS used to compose the video
+    '''
     frames = os.listdir(frames_dir)
     frames.sort(key=lambda f: int(re.sub('\D', '', f)))
     frame_array = []
@@ -344,6 +415,22 @@ def create_video(frames_dir, video_name, FPS):
 
 
 def create_plot_contagion(contagion_map, title, modality="d"):
+    '''
+    Method used to create a plot of contagion during the video analysis and save it on image.
+    The plot is organized in --> x: frames, y: n_of people.
+    The plot draw the lines based on the number of people detected in each frame, the number of people in the various
+    state divided by colors.
+    :param contagion_map: a list that contains a number of tuples composed by (n_people_detected,n_safe,n_warning,n_dangerous)
+    equal to the number of frames.
+    :param title: title to give to the plot and used to save the image.
+    :param modality: is possible to compose a string of modality.
+    The options are:
+        - 'd' --> draw the line of dangerous people (red line)
+        - 'w' --> draw the line of warning people (yellow line)
+        - 's' --> draw the line of safe people (green line)
+    Is possible to create different compositions with options.
+    Example --> 'dw' draw lines relative to dangerous people and warning people ( red, yellow lines).
+    '''
     plt.style.use('seaborn-whitegrid')
     fig = plt.figure(figsize=[27, 9])
     ax = plt.axes()

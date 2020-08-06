@@ -34,6 +34,11 @@ from imageai.Detection import ObjectDetection
 
 
 def faster_RCNN_model():
+    '''
+    Method that creates a fasterRCNN model, using config and pretrained weights
+    from detectron2 core library
+    :return: the fasterRCNN model used to predict
+    '''
     cfg = get_cfg()
     cfg.MODEL.DEVICE = 'cuda'
 
@@ -48,6 +53,12 @@ def faster_RCNN_model():
 
 
 def YoloV3_model(yolov3_model_path):
+    '''
+    Method that creates a YoloV3 model, using config from ImageAi core library.
+    :param yolov3_model_path: the path of the config file
+    :return: the YoloV3 model used to predict and the custom objects ( only poeple) to pass to the model
+    during prediction.
+    '''
     detector = ObjectDetection()
     detector.setModelTypeAsYOLOv3()  # Se vuoi usare yolo tiny cambia il set model
     detector.setModelPath(yolov3_model_path)
@@ -57,6 +68,12 @@ def YoloV3_model(yolov3_model_path):
 
 
 def find_people_fasterRCNN(frame, model):
+    '''
+    Method used to do detection of people with fasterRCNN model.
+    :param frame: input frame where perform prediction.
+    :param model: the model used to predict on frame.
+    :return: the people bounding boxes [x1,y1,x2,y2] and the bottom midpoints [x1,y1]
+    '''
     # img = cv2.imread(frame_file)
     outputs = model(frame)
     classes = outputs['instances'].pred_classes.cpu().numpy()
@@ -68,6 +85,13 @@ def find_people_fasterRCNN(frame, model):
 
 
 def find_people_YoloV3(frame, model, custom_objects=None):
+    '''
+    Method used to do detection of people with YoloV3 model.
+    :param frame: input frame where perform prediction.
+    :param model: the model used to predict on frame.
+    :param custom_objects: indicates to the model to detect only people
+    :return: the people bounding boxes [x1,y1,x2,y2] and the bottom midpoints [x1,y1]
+    '''
     returned_image, detections = model.detectCustomObjectsFromImage(
         custom_objects=custom_objects,
         input_type="array", input_image=frame,
@@ -80,6 +104,24 @@ def find_people_YoloV3(frame, model, custom_objects=None):
 
 
 def perform_social_detection(video_name, points_ROI, points_distance, width, height, selected_model):
+    '''
+    Papeline of social detection prediction that read all frames of the video passed in input
+    finds the people inside in each frame based on the selected prediction model,
+    and compute the perspective trasformation of the midpoints on the bird eye view.
+    Then for each midpoint transformed, compute the euclidean distance to check which
+    are the distances between the relative midpoints.
+    Finally color the bboxes of the people and the points on bird eye view image of the
+    right social distancing color and save the edit frame. During the social detection is created also
+    a contagion map that indicates for each frames how many contagions there are.
+    :param video_name: the name of the video
+    :param points_ROI: list of 4 points of ROI
+    :param points_distance: list of 3 points relative to calibrate the distances inside the bird eye view
+    :param width: the width of the frames
+    :param height: the height of the frames
+    :param selected_model: the model used to perform the people detection. Can be chosen 'yolo' or 'fasterRCNN' options.
+    :return: the contagion map composed by tuples (n people detected,n safe, n warning,n dangeorous)
+    for how many frames there are in the video
+    '''
     output_folder = "out/"
     contagion_map = []
     # create output folder of processed frames

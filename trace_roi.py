@@ -14,7 +14,6 @@ from tqdm import tqdm
 from utils import *
 from models import *
 import argparse
-import detection_and_tracking as det
 from PIL import Image
 
 # import libraries for videos
@@ -59,12 +58,12 @@ def draw_circle(event, x, y, flags, param):
 
 
 if __name__ == "__main__":
-    # DEFINISCO I PARAMETRI CON ARG PARSER
     parser = argparse.ArgumentParser(
         description="Tool to analyze videos and check if people respect social distancing.")
     parser.add_argument("video_file", type=str, help="video file to process. Could be .mp4")
     args = parser.parse_args()
 
+    #get the video name from file
     video_file = args.video_file
     video_name = get_video_name(video_file)
     frames_dir = FRAMES_FOLDER + video_name + "/"
@@ -82,12 +81,12 @@ if __name__ == "__main__":
     # first_frame = cv2.imread(FRAMES_FOLDER + video_name + "/" + file_frame)
     mouse_points = []
     index_frame = 0
+    #read first frame
     frame = cv2.imread(frames_dir + frames[index_frame])
     height, width, _ = frame.shape
     print("width e height ", width, height)
 
-    # PRENDO IL PRIMO FRAME PER TRACCIARE LA ROI
-    # set window
+    # set window and callback to trace ROI
     cv2.namedWindow("Trace points of ROI")
     cv2.setMouseCallback("Trace points of ROI", draw_circle)
     edit_frame = frame.copy()
@@ -110,14 +109,14 @@ if __name__ == "__main__":
             edit_frame = frame.copy()
             break
 
-        # n 'next' button
+        # n 'next' button to skip to next frame
         if key_pressed == 110:
             index_frame = (index_frame + 1) % (len(frames))
             frame = cv2.imread(frames_dir + frames[index_frame])
             edit_frame = frame.copy()
             mouse_points = []
 
-        # b 'back' button
+        # b 'back' button to skip previous frame
         if key_pressed == 98:
             index_frame = len(frames) - 1 if index_frame == 0 else index_frame - 1
             frame = cv2.imread(frames_dir + frames[index_frame])
@@ -127,8 +126,7 @@ if __name__ == "__main__":
 
     cv2.destroyWindow("Trace points of ROI")
 
-    # end to trace ROI
-
+    # end to trace ROI, write the results on a text file
     write_results(text_file, video_name, FPS, width, height, mouse_points)
 
     video_name, FPS, width, height, points_ROI, points_distance = read_results(text_file)
