@@ -143,7 +143,8 @@ def compute_perspective_transform(corner_points, width, height, image):
     img_params = np.float32([[0, height], [width, height], [width, 0], [0, 0]])
     # Compute and return the transformation matrix
     matrix = cv2.getPerspectiveTransform(corner_points_array, img_params)
-    img_transformed = cv2.warpPerspective(image, matrix, (width, height))
+    #img_transformed = cv2.warpPerspective(image, matrix, (width, height))
+    img_transformed = cv2.warpPerspective(image, matrix, (height, width))
     return matrix, img_transformed
 
 
