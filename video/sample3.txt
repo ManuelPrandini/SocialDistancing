@@ -1,0 +1,13 @@
+video name:sample3
+FPS:29.97002997002997
+width:640
+height:360
+points of ROI:
+7,336
+617,324
+604,141
+6,158
+points of distance:
+153,326
+153,309
+171,325

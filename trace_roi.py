@@ -12,7 +12,6 @@ from matplotlib import patches
 from tqdm import tqdm
 
 from utils import *
-from models import *
 import argparse
 from PIL import Image
 
