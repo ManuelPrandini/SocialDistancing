@@ -47,7 +47,7 @@ def get_frame_rate(video_capture):
     return FPS
 
 
-def save_frames_from_video(video_path):
+def save_frames_from_video(video_path, max_frames = 750):
     '''
     Method that takes the path of a video, read the video
     and create all the frames of the video, saving them on
@@ -98,6 +98,10 @@ def save_frames_from_video(video_path):
             # save each frame to folder
             cv2.imwrite(save_path_folder + str(cnt) + '.png', frame)
             cnt = cnt + 1
+
+            if cnt >= max_frames:
+                print("Done! " + str(cnt) + " frames saved in" + save_path_folder)
+                return video_name, FPS
 
         # Break the loop
         else:
