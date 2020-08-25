@@ -143,8 +143,7 @@ def compute_perspective_transform(corner_points, width, height, image):
     img_params = np.float32([[0, height], [width, height], [width, 0], [0, 0]])
     # Compute and return the transformation matrix
     matrix = cv2.getPerspectiveTransform(corner_points_array, img_params)
-    #img_transformed = cv2.warpPerspective(image, matrix, (width, height))
-    img_transformed = cv2.warpPerspective(image, matrix, (height, width))
+    img_transformed = cv2.warpPerspective(image, matrix, (width, height))
     return matrix, img_transformed
 
 
@@ -417,22 +416,71 @@ def create_video(frames_dir, video_name, FPS):
     out.release()
 
 
-def create_plot_contagion(contagion_map, title, modality="d"):
+def resize_and_pad(img, size, pad_color=0):
+    '''
+    Method used to resize the bird eye view to fit on the final mosaic output.
+    :param img: the bird eye image
+    :param size: size to set the image resized
+    :param pad_color: color used to fill the pad around the image
+    :return: the bird eye view image resized
+    '''
+    h, w = img.shape[:2]
+    sh, sw = size
+
+    # interpolation method
+    if h > sh or w > sw:  # shrinking image
+        interp = cv2.INTER_AREA
+    else:  # stretching image
+        interp = cv2.INTER_CUBIC
+
+    # aspect ratio of image
+    aspect = w / h  # if on Python 2, you might need to cast as a float: float(w)/h
+
+    # compute scaling and pad sizing
+    if aspect > 1:  # horizontal image
+        new_w = sw
+        new_h = np.round(new_w / aspect).astype(int)
+        pad_vert = (sh - new_h) / 2
+        pad_top, pad_bot = np.floor(pad_vert).astype(int), np.ceil(pad_vert).astype(int)
+        pad_left, pad_right = 0, 0
+    elif aspect < 1:  # vertical image
+        new_h = sh
+        new_w = np.round(new_h * aspect).astype(int)
+        pad_horz = (sw - new_w) / 2
+        pad_left, pad_right = np.floor(pad_horz).astype(int), np.ceil(pad_horz).astype(int)
+        pad_top, pad_bot = 0, 0
+    else:  # square image
+        new_h, new_w = sh, sw
+        pad_left, pad_right, pad_top, pad_bot = 0, 0, 0, 0
+
+    # set pad color
+    if len(img.shape) is 3 and not isinstance(pad_color,(list, tuple, np.ndarray)):  # color image but only one color provided
+        pad_color = [pad_color] * 3
+
+    # scale and pad
+    scaled_img = cv2.resize(img, (new_w, new_h), interpolation=interp)
+    scaled_img = cv2.copyMakeBorder(scaled_img, pad_top, pad_bot, pad_left, pad_right,
+                                    borderType=cv2.BORDER_CONSTANT, value=pad_color)
+
+    return scaled_img
+
+
+def create_plot_contagion(contagion_map, title, modality="h"):
     '''
     Method used to create a plot of contagion during the video analysis and save it on image.
     The plot is organized in --> x: frames, y: n_of people.
     The plot draw the lines based on the number of people detected in each frame, the number of people in the various
     state divided by colors.
-    :param contagion_map: a list that contains a number of tuples composed by (n_people_detected,n_safe,n_warning,n_dangerous)
+    :param contagion_map: a list that contains a number of tuples composed by (n_people_detected,n_safe,n_low_risk,n_high_risk)
     equal to the number of frames.
     :param title: title to give to the plot and used to save the image.
     :param modality: is possible to compose a string of modality.
     The options are:
-        - 'd' --> draw the line of dangerous people (red line)
-        - 'w' --> draw the line of warning people (yellow line)
+        - 'h' --> draw the line of high risk people (red line)
+        - 'l' --> draw the line of low risk people (yellow line)
         - 's' --> draw the line of safe people (green line)
     Is possible to create different compositions with options.
-    Example --> 'dw' draw lines relative to dangerous people and warning people ( red, yellow lines).
+    Example --> 'hl' draw lines relative to high risk people and low risk people ( red, yellow lines).
     '''
     plt.style.use('seaborn-whitegrid')
     fig = plt.figure(figsize=[27, 9])
@@ -440,7 +488,7 @@ def create_plot_contagion(contagion_map, title, modality="d"):
     # set info axes
     plt.title(title, fontsize=20)
     plt.xlabel("frames", fontsize=18)
-    plt.ylabel("n° people", fontsize=18);
+    plt.ylabel("n° people", fontsize=18)
 
     people_detected = []
     safe_people = []
@@ -461,17 +509,20 @@ def create_plot_contagion(contagion_map, title, modality="d"):
 
     # set limits to plot
     plt.xlim(0, len(contagion_map))
-    plt.ylim(min(people_detected), max(people_detected) + 2);
+    plt.ylim(min(people_detected), max(people_detected) + 2)
 
     # plot based on modality chosen
     plt.plot(frames, people_detected, color='black', linestyle='-', label="detected")
-    if 'd' in modality:
-        plt.plot(frames, dangerous_people, color="red", linestyle='-', label="dangerous")
-    if 'w' in modality:
-        plt.plot(frames, warning_people, color="yellow", linestyle='-', label="warning")
+    if 'h' in modality:
+        plt.plot(frames, dangerous_people, color="red", linestyle='-', label="high-risk")
+    if 'l' in modality:
+        plt.plot(frames, warning_people, color="yellow", linestyle='-', label="low-risk")
     if 's' in modality:
         plt.plot(frames, safe_people, color="green", linestyle='-', label="safe")
 
     # set legend and save figure plot
     plt.legend(fontsize=18)
     fig.savefig(title + '.jpg')
+
+
+

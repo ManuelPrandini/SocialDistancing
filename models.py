@@ -12,6 +12,7 @@ from tqdm import tqdm
 #DA PROVARE SU COLAB
 from SocialDistancing import utils
 #import utils
+from utils import resize_and_pad
 
 setup_logger()
 
@@ -122,8 +123,11 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
     :return: the contagion map composed by tuples (n people detected,n safe, n warning,n dangeorous)
     for how many frames there are in the video
     '''
+
+    print("Processing ", video_name, "...")
     output_folder = "out/"
     contagion_map = []
+
     # create output folder of processed frames
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
@@ -152,18 +156,15 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
 
     # get info from bird eye frame
     bird_width, bird_height, _ = bird_eye_frame.shape
-    diff_height_bg = bird_height - height
-    width_bg = width
+    #size for resize the bird eye
+    dsize = (width - 100, height)
 
-    # create background image for text
-    background_img = np.zeros((diff_height_bg, width_bg, 3), dtype=np.uint8)
-    background_img[:diff_height_bg, :width_bg] = (127, 127, 127)
 
     # process over the frames
     for f in tqdm(frames):
         # read the frame and create a copy of background image
         frame = cv2.imread(utils.FRAMES_FOLDER + video_name + "/" + f)
-        background_social_detector = deepcopy(background_img)
+
         # create bird-eye-view image
         bird_eye_view_img = np.zeros((bird_height, bird_width, 3))
 
@@ -222,10 +223,10 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
 
             # set text to write on background image based on statistics
             text_number_people = "People detected: " + str(len(midpoints_transformed))
-            text_safe = "Safe person: " + str((len(set_safe_faster) / len(midpoints_transformed)) * 100) + "%"
-            text_warning = "Warning person: " + str(
+            text_safe = "People safe: " + str((len(set_safe_faster) / len(midpoints_transformed)) * 100) + "%"
+            text_warning = "People low risk: " + str(
                 (len(set_warning_faster) / len(midpoints_transformed)) * 100) + "%"
-            text_dangerous = "Dangerous person: " + str(
+            text_dangerous = "People high risk: " + str(
                 (len(set_dangerous_faster) / len(midpoints_transformed)) * 100) + "%"
 
             # fill contagion_map --> (n_people, n_safe, n_warning, n_dangerous)
@@ -234,33 +235,42 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
         else:
             # no people detected, write only 0 on the background image
             text_number_people = "People detected: 0"
-            text_safe = "Safe person: 0.0%"
-            text_warning = "Warning person: 0.0%"
-            text_dangerous = "Dangerous person: 0.0%"
+            text_safe = "People safe: 0.0%"
+            text_warning = "People low risk: 0.0%"
+            text_dangerous = "People high risk: 0.0%"
 
             # fill contagion_map with zeros
             contagion_tuple = (0, 0, 0, 0)
             contagion_map.append(contagion_tuple)
 
+        # scale bird-eye-img
+        bird_eye_view_img = resize_and_pad(bird_eye_view_img, dsize)
+
+        # create background image for text
+        background_height = bird_eye_view_img.shape[0] - height
+        background_width = width
+
+        background_img = np.zeros((background_height, background_width, 3), dtype=np.uint8)
+        background_img[:background_height, :background_width] = (127, 127, 127)
+
         # set text on image
-        cv2.putText(background_social_detector, text_number_people, (12, 170), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0),
+        cv2.putText(background_img, text_number_people, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0),
                     2, cv2.LINE_4)
-        cv2.putText(background_social_detector, text_safe, (12, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.7, utils.COLOR_SAFE, 2,
+        cv2.putText(background_img, text_safe, (15, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, utils.COLOR_SAFE, 2,
                     cv2.LINE_4)
-        cv2.putText(background_social_detector, text_warning, (12, 230), cv2.FONT_HERSHEY_SIMPLEX, 0.7, utils.COLOR_WARNING,
+        cv2.putText(background_img, text_warning, (15, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, utils.COLOR_WARNING,
                     2, cv2.LINE_4)
-        cv2.putText(background_social_detector, text_dangerous, (12, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+        cv2.putText(background_img, text_dangerous, (15, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                     utils.COLOR_DANGEROUS, 2, cv2.LINE_4)
 
         # compose the image
-        numpy_vertical = np.vstack((frame, background_social_detector))
-        numpy_vertical_concat = np.concatenate((frame, background_social_detector), axis=0)
-
+        numpy_vertical = np.vstack((frame, background_img))
+        numpy_vertical_concat = np.concatenate((frame, background_img), axis=0)
         numpy_horizontal = np.hstack((numpy_vertical_concat, bird_eye_view_img))
         numpy_horizontal_concat = np.concatenate((numpy_vertical_concat, bird_eye_view_img), axis=1)
 
-        # write result of edit frame
+        #write result of edit frame
         cv2.imwrite(output_folder + video_name + "/" + f, numpy_horizontal_concat)
 
-    # return contagion map
+    #return contagion map
     return contagion_map
