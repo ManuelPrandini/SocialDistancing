@@ -12,11 +12,11 @@ from tqdm import tqdm
 #DA PROVARE SU COLAB
 from SocialDistancing import utils
 #import utils
-from utils import resize_and_pad
+
 
 setup_logger()
 
-# import some common libraries
+#import some common libraries
 import numpy as np
 import cv2
 import random
@@ -155,7 +155,7 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
         model = faster_RCNN_model()
 
     # get info from bird eye frame
-    bird_width, bird_height, _ = bird_eye_frame.shape
+    bird_height, bird_width, _ = bird_eye_frame.shape
     #size for resize the bird eye
     dsize = (width - 100, height)
 
@@ -201,11 +201,11 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
             for i in range(len(midpoints_transformed)):
                 x, y = midpoints_transformed[i][0], midpoints_transformed[i][1]
                 if i in set_safe_faster:
-                    cv2.circle(bird_eye_view_img, (x, y), 5, utils.COLOR_SAFE, 5)
+                    cv2.circle(bird_eye_view_img, (x, y), 3, utils.COLOR_SAFE, 3)
                 elif i in set_warning_faster:
-                    cv2.circle(bird_eye_view_img, (x, y), 5, utils.COLOR_WARNING, 5)
+                    cv2.circle(bird_eye_view_img, (x, y), 3, utils.COLOR_WARNING, 3)
                 elif i in set_dangerous_faster:
-                    cv2.circle(bird_eye_view_img, (x, y), 5, utils.COLOR_DANGEROUS, 5)
+                    cv2.circle(bird_eye_view_img, (x, y), 3, utils.COLOR_DANGEROUS, 3)
 
             # draw distance lines on frame
             # draw distance lines on bird eye view
@@ -244,7 +244,7 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
             contagion_map.append(contagion_tuple)
 
         # scale bird-eye-img
-        bird_eye_view_img = resize_and_pad(bird_eye_view_img, dsize)
+        bird_eye_view_img = utils.resize_and_pad(bird_eye_view_img, dsize)
 
         # create background image for text
         background_height = bird_eye_view_img.shape[0] - height
