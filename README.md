@@ -83,3 +83,7 @@ Detection with Region Proposal Networks”, 2016.
 
 [4]. Pranav Adarsh, Pratibha Rathi, Manoj Kumar, “YOLO v3-Tiny: Object Detection and Recognition using
 one stage improved model”, 2020 6th International Conference on Advanced Computing & Communication Systems (ICACCS). 
+
+[5]. Yuxin Wu and Alexander Kirillov and Francisco Massa and Wan-Yen Lo and Ross Girshick, "Detectron2", 2019, https://github.com/facebookresearch/detectron2
+
+[6]. Moses and John Olafenwa, "ImageAI, an open source python library built to empower developers to build applications and systems  with self-contained Computer Vision capabilities", mar 2018, https://github.com/OlafenwaMoses/ImageAI
