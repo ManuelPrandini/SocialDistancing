@@ -1,13 +1,5 @@
 # Social Distancing
 
-## Authors
-
-- [Prandini Manuel](https://github.com/ManuelPrandini)
-
-- [Bianca Francesco ](https://github.com/francescobianca)
-
-- [Berti Andrea ](https://github.com/andreaberti)
-
 Social distancing implies that people should physically distance themselves from one another, reducing close contact, and thereby reducing the spread of a contagious disease 
 
 ![Logo](https://github.com/ManuelPrandini/SocialDistancing/blob/master/img/logo.png)
@@ -79,6 +71,14 @@ def faster_RCNN_model():
     predictor = DefaultPredictor(cfg)
     return predictor
 ```
+
+## Authors
+
+- [Prandini Manuel](https://github.com/ManuelPrandini)
+
+- [Bianca Francesco ](https://github.com/francescobianca)
+
+- [Berti Andrea ](https://github.com/andreaberti)
 
 ## References
 
