@@ -155,6 +155,7 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
         yolov3_model_path = "./yolo.h5"
         model, custom_objects = YoloV3_model(yolov3_model_path)
     elif selected_model == 'yolo-tiny':
+        print("find distances with YoloV3-tiny")
         yolov3_tiny_model_path = "./yolo-tiny.h5"
         model, custom_objects = YoloV3_model(yolov3_tiny_model_path, b_tiny_version=True)
     elif selected_model == 'fasterRCNN':
@@ -175,7 +176,7 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
         bird_eye_view_img = np.zeros((bird_height, bird_width, 3))
 
         # choose the right predict based on 'selected_model' parameter
-        if selected_model == 'yolo':
+        if selected_model == 'yolo' or selected_model == 'yolo-tiny':
             bboxes, midpoints = find_people_YoloV3(frame, model, custom_objects)
         elif selected_model == 'fasterRCNN':
             bboxes, midpoints = find_people_fasterRCNN(frame, model)
