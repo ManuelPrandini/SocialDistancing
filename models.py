@@ -5,18 +5,19 @@ import detectron2
 from detectron2.utils.logger import setup_logger
 from tqdm import tqdm
 
-#from utils import mid_point, get_frames, FRAMES_FOLDER, compute_perspective_transform, \
- #   compute_perspective_unit_distances, return_people_ids, compute_point_perspective_transformation, compute_distances, \
- #   check_risks_people, COLOR_SAFE, COLOR_WARNING, COLOR_DANGEROUS
+# from utils import mid_point, get_frames, FRAMES_FOLDER, compute_perspective_transform, \
+#   compute_perspective_unit_distances, return_people_ids, compute_point_perspective_transformation, compute_distances, \
+#   check_risks_people, COLOR_SAFE, COLOR_WARNING, COLOR_DANGEROUS
 
-#DA PROVARE SU COLAB
+# DA PROVARE SU COLAB
 from SocialDistancing import utils
-#import utils
+
+# import utils
 
 
 setup_logger()
 
-#import some common libraries
+# import some common libraries
 import numpy as np
 import cv2
 import random
@@ -53,7 +54,7 @@ def faster_RCNN_model():
     return predictor
 
 
-def YoloV3_model(yolov3_model_path):
+def YoloV3_model(yolov3_model_path, b_tiny_version=False):
     '''
     Method that creates a YoloV3 model, using config from ImageAi core library.
     :param yolov3_model_path: the path of the config file
@@ -61,7 +62,10 @@ def YoloV3_model(yolov3_model_path):
     during prediction.
     '''
     detector = ObjectDetection()
-    detector.setModelTypeAsYOLOv3()  # Se vuoi usare yolo tiny cambia il set model
+    if not b_tiny_version:
+        detector.setModelTypeAsYOLOv3()
+    else:
+        detector.setModelTypeAsTinyYOLOv3()
     detector.setModelPath(yolov3_model_path)
     custom_objects = detector.CustomObjects(person=True)
     detector.loadModel()
@@ -119,7 +123,7 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
     :param points_distance: list of 3 points relative to calibrate the distances inside the bird eye view
     :param width: the width of the frames
     :param height: the height of the frames
-    :param selected_model: the model used to perform the people detection. Can be chosen 'yolo' or 'fasterRCNN' options.
+    :param selected_model: the model used to perform the people detection. Can be chosen 'yolo' , 'fasterRCNN' or 'yolo-tiny' options.
     :return: the contagion map composed by tuples (n people detected,n safe, n warning,n dangeorous)
     for how many frames there are in the video
     '''
@@ -150,15 +154,17 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
         print("find distances with YoloV3")
         yolov3_model_path = "./yolo.h5"
         model, custom_objects = YoloV3_model(yolov3_model_path)
+    elif selected_model == 'yolo-tiny':
+        yolov3_tiny_model_path = "./yolo-tiny.h5"
+        model, custom_objects = YoloV3_model(yolov3_tiny_model_path, b_tiny_version=True)
     elif selected_model == 'fasterRCNN':
         print("find distances with fasterRCNN")
         model = faster_RCNN_model()
 
     # get info from bird eye frame
     bird_height, bird_width, _ = bird_eye_frame.shape
-    #size for resize the bird eye
+    # size for resize the bird eye
     dsize = (width - 100, height)
-
 
     # process over the frames
     for f in tqdm(frames):
@@ -269,8 +275,8 @@ def perform_social_detection(video_name, points_ROI, points_distance, width, hei
         numpy_horizontal = np.hstack((numpy_vertical_concat, bird_eye_view_img))
         numpy_horizontal_concat = np.concatenate((numpy_vertical_concat, bird_eye_view_img), axis=1)
 
-        #write result of edit frame
+        # write result of edit frame
         cv2.imwrite(output_folder + video_name + "/" + f, numpy_horizontal_concat)
 
-    #return contagion map
+    # return contagion map
     return contagion_map
